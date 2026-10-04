@@ -1,0 +1,608 @@
+{
+  "leads": [
+    {
+      "id": "L-001",
+      "name": "Test Lead Aarav",
+      "source": "Simulated Meta form",
+      "type": "Villa",
+      "location": "West Park",
+      "budget": 12000000,
+      "purpose": "Investment",
+      "timeline": "0–3 months",
+      "score": 94,
+      "stage": "Priority review",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-002",
+      "name": "Test Lead Diya",
+      "source": "Simulated property portal",
+      "type": "Plot",
+      "location": "Green Meadows",
+      "budget": 7500000,
+      "purpose": "Personal use",
+      "timeline": "0–3 months",
+      "score": 88,
+      "stage": "Ready for matching",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-003",
+      "name": "Test Lead Kabir",
+      "source": "Simulated website form",
+      "type": "Commercial",
+      "location": "Tech Square",
+      "budget": 9500000,
+      "purpose": "Investment",
+      "timeline": "0–3 months",
+      "score": 84,
+      "stage": "Follow-up due",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-004",
+      "name": "Test Lead Meera",
+      "source": "Simulated manual entry",
+      "type": "Flat",
+      "location": "Lake View",
+      "budget": 6800000,
+      "purpose": "Personal use",
+      "timeline": "0–3 months",
+      "score": 82,
+      "stage": "Visit proposed",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-005",
+      "name": "Test Lead Ishaan",
+      "source": "Simulated property portal",
+      "type": "Land",
+      "location": "Riverside",
+      "budget": 14000000,
+      "purpose": "Investment",
+      "timeline": "0–3 months",
+      "score": 80,
+      "stage": "Ready for matching",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-006",
+      "name": "Test Lead Anaya",
+      "source": "Simulated Meta form",
+      "type": "Flat",
+      "location": "Central Avenue",
+      "budget": 8500000,
+      "purpose": "Personal use",
+      "timeline": "0–3 months",
+      "score": 91,
+      "stage": "Priority review",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-007",
+      "name": "Test Lead Vivaan",
+      "source": "Simulated website form",
+      "type": "Flat",
+      "location": "Lake View",
+      "budget": 6200000,
+      "purpose": "Personal use",
+      "timeline": "3–6 months",
+      "score": 74,
+      "stage": "Follow-up scheduled",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-008",
+      "name": "Test Lead Tara",
+      "source": "Simulated Meta form",
+      "type": "Villa",
+      "location": "West Park",
+      "budget": 11000000,
+      "purpose": "Investment",
+      "timeline": "3–6 months",
+      "score": 71,
+      "stage": "Nurture",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-009",
+      "name": "Test Lead Arjun",
+      "source": "Simulated manual entry",
+      "type": "Plot",
+      "location": "Green Meadows",
+      "budget": 5200000,
+      "purpose": "Investment",
+      "timeline": "3–6 months",
+      "score": 67,
+      "stage": "Follow-up scheduled",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-010",
+      "name": "Test Lead Kiara",
+      "source": "Simulated property portal",
+      "type": "Commercial",
+      "location": "Tech Square",
+      "budget": 7900000,
+      "purpose": "Investment",
+      "timeline": "6–12 months",
+      "score": 63,
+      "stage": "Nurture",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-011",
+      "name": "Test Lead Rohan",
+      "source": "Simulated website form",
+      "type": "Land",
+      "location": "Riverside",
+      "budget": 10000000,
+      "purpose": "Investment",
+      "timeline": "6–12 months",
+      "score": 59,
+      "stage": "Follow-up scheduled",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-012",
+      "name": "Test Lead Sana",
+      "source": "Simulated Meta form",
+      "type": "Flat",
+      "location": "Central Avenue",
+      "budget": 7200000,
+      "purpose": "Personal use",
+      "timeline": "6–12 months",
+      "score": 56,
+      "stage": "Nurture",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-013",
+      "name": "Test Lead Dev",
+      "source": "Simulated manual entry",
+      "type": "Villa",
+      "location": "West Park",
+      "budget": 9000000,
+      "purpose": "Personal use",
+      "timeline": "6–12 months",
+      "score": 53,
+      "stage": "Follow-up scheduled",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-014",
+      "name": "Test Lead Myra",
+      "source": "Simulated property portal",
+      "type": "Plot",
+      "location": "Green Meadows",
+      "budget": 4500000,
+      "purpose": "Investment",
+      "timeline": "12+ months",
+      "score": 50,
+      "stage": "Nurture",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-015",
+      "name": "Test Lead Reyansh",
+      "source": "Simulated website form",
+      "type": "Flat",
+      "location": "Lake View",
+      "budget": 5000000,
+      "purpose": "Personal use",
+      "timeline": "12+ months",
+      "score": 44,
+      "stage": "Nurture only",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-016",
+      "name": "Test Lead Aditi",
+      "source": "Simulated Meta form",
+      "type": "Commercial",
+      "location": "Tech Square",
+      "budget": 7000000,
+      "purpose": "Investment",
+      "timeline": "12+ months",
+      "score": 40,
+      "stage": "Do not contact",
+      "dnc": true,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-017",
+      "name": "Test Lead Neel",
+      "source": "Simulated manual entry",
+      "type": "Land",
+      "location": "Riverside",
+      "budget": 6000000,
+      "purpose": "Investment",
+      "timeline": "12+ months",
+      "score": 36,
+      "stage": "Nurture only",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-018",
+      "name": "Test Lead Riya",
+      "source": "Simulated property portal",
+      "type": "Villa",
+      "location": "West Park",
+      "budget": 7500000,
+      "purpose": "Personal use",
+      "timeline": "12+ months",
+      "score": 31,
+      "stage": "Nurture only",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-019",
+      "name": "Test Lead Yash",
+      "source": "Simulated website form",
+      "type": "Plot",
+      "location": "Green Meadows",
+      "budget": 3500000,
+      "purpose": "Investment",
+      "timeline": "12+ months",
+      "score": 25,
+      "stage": "Nurture only",
+      "dnc": false,
+      "created": "Test Day 1"
+    },
+    {
+      "id": "L-020",
+      "name": "Test Lead Ira",
+      "source": "Simulated Meta form",
+      "type": "Flat",
+      "location": "Central Avenue",
+      "budget": 4000000,
+      "purpose": "Personal use",
+      "timeline": "12+ months",
+      "score": 18,
+      "stage": "Nurture only",
+      "dnc": false,
+      "created": "Test Day 1"
+    }
+  ],
+  "properties": [
+    {
+      "id": "P-101",
+      "name": "Azure Heights",
+      "type": "Flat",
+      "location": "Lake View",
+      "price": 6500000,
+      "status": "Available",
+      "detail": "3 BHK • Test inventory"
+    },
+    {
+      "id": "P-102",
+      "name": "Central Crest",
+      "type": "Flat",
+      "location": "Central Avenue",
+      "price": 8200000,
+      "status": "Available",
+      "detail": "3 BHK • Test inventory"
+    },
+    {
+      "id": "P-103",
+      "name": "Orchard Residences",
+      "type": "Flat",
+      "location": "Lake View",
+      "price": 7200000,
+      "status": "On Hold",
+      "detail": "4 BHK • Test inventory"
+    },
+    {
+      "id": "P-104",
+      "name": "Palm Enclave",
+      "type": "Villa",
+      "location": "West Park",
+      "price": 11500000,
+      "status": "Available",
+      "detail": "4 BHK villa • Test inventory"
+    },
+    {
+      "id": "P-105",
+      "name": "Cedar Villas",
+      "type": "Villa",
+      "location": "West Park",
+      "price": 9800000,
+      "status": "Sold",
+      "detail": "3 BHK villa • Test inventory"
+    },
+    {
+      "id": "P-106",
+      "name": "Greenfield Plots",
+      "type": "Plot",
+      "location": "Green Meadows",
+      "price": 5800000,
+      "status": "Available",
+      "detail": "240 sq yd • Test inventory"
+    },
+    {
+      "id": "P-107",
+      "name": "Meadow Parcels",
+      "type": "Plot",
+      "location": "Green Meadows",
+      "price": 4400000,
+      "status": "Available",
+      "detail": "180 sq yd • Test inventory"
+    },
+    {
+      "id": "P-108",
+      "name": "Nexus Square",
+      "type": "Commercial",
+      "location": "Tech Square",
+      "price": 8800000,
+      "status": "Available",
+      "detail": "Office unit • Test inventory"
+    },
+    {
+      "id": "P-109",
+      "name": "Harbor Point",
+      "type": "Commercial",
+      "location": "Tech Square",
+      "price": 7600000,
+      "status": "On Hold",
+      "detail": "Retail unit • Test inventory"
+    },
+    {
+      "id": "P-110",
+      "name": "Riverbend Acres",
+      "type": "Land",
+      "location": "Riverside",
+      "price": 12500000,
+      "status": "Available",
+      "detail": "1 acre • Test inventory"
+    }
+  ],
+  "followups": [
+    {
+      "id": "F-001",
+      "leadId": "L-003",
+      "due": "Test Day 1 · 11:00",
+      "owner": "Follow-up Agent",
+      "note": "Simulated priority check",
+      "status": "Due"
+    },
+    {
+      "id": "F-002",
+      "leadId": "L-007",
+      "due": "Test Day 1 · 14:00",
+      "owner": "Follow-up Agent",
+      "note": "Simulated 3–6 month nurture",
+      "status": "Scheduled"
+    },
+    {
+      "id": "F-003",
+      "leadId": "L-009",
+      "due": "Test Day 1 · 15:30",
+      "owner": "Follow-up Agent",
+      "note": "Simulated plot shortlist",
+      "status": "Scheduled"
+    },
+    {
+      "id": "F-004",
+      "leadId": "L-011",
+      "due": "Test Day 1 · 09:30",
+      "owner": "Follow-up Agent",
+      "note": "Simulated investor check-in",
+      "status": "Overdue"
+    },
+    {
+      "id": "F-005",
+      "leadId": "L-013",
+      "due": "Test Day 2 · 10:00",
+      "owner": "Follow-up Agent",
+      "note": "Simulated villa preferences",
+      "status": "Scheduled"
+    },
+    {
+      "id": "F-006",
+      "leadId": "L-014",
+      "due": "Test Day 3 · 11:00",
+      "owner": "Follow-up Agent",
+      "note": "Simulated long-term nurture",
+      "status": "Scheduled"
+    },
+    {
+      "id": "F-007",
+      "leadId": "L-015",
+      "due": "Test Day 4 · 12:00",
+      "owner": "Follow-up Agent",
+      "note": "Simulated update only",
+      "status": "Completed"
+    }
+  ],
+  "visits": [
+    {
+      "id": "V-001",
+      "leadId": "L-004",
+      "propertyId": "P-101",
+      "when": "Test Day 2 · 11:00",
+      "status": "Proposed",
+      "note": "Simulated approval needed"
+    },
+    {
+      "id": "V-002",
+      "leadId": "L-001",
+      "propertyId": "P-104",
+      "when": "Test Day 2 · 15:30",
+      "status": "Scheduled",
+      "note": "Simulated visit"
+    },
+    {
+      "id": "V-003",
+      "leadId": "L-002",
+      "propertyId": "P-106",
+      "when": "Test Day 3 · 10:30",
+      "status": "Scheduled",
+      "note": "Simulated visit"
+    },
+    {
+      "id": "V-004",
+      "leadId": "L-006",
+      "propertyId": "P-102",
+      "when": "Test Day 4 · 16:00",
+      "status": "Proposed",
+      "note": "Simulated approval needed"
+    }
+  ],
+  "agents": [
+    {
+      "id": "A-01",
+      "name": "Lead Capture Agent",
+      "icon": "↓",
+      "status": "Active",
+      "task": "Reading simulated lead sources",
+      "processed": 20,
+      "hot": 6,
+      "description": "Normalizes dummy Meta, portal, website, and manual test leads."
+    },
+    {
+      "id": "A-02",
+      "name": "Lead Qualification Agent",
+      "icon": "?",
+      "status": "Active",
+      "task": "Checking test requirements",
+      "processed": 20,
+      "hot": 6,
+      "description": "Reviews simulated property type, location, budget, purpose, and timeline."
+    },
+    {
+      "id": "A-03",
+      "name": "Lead Scoring Agent",
+      "icon": "!",
+      "status": "Active",
+      "task": "Scoring test leads",
+      "processed": 20,
+      "hot": 6,
+      "description": "Assigns the HOT, WARM, or COLD test priority score."
+    },
+    {
+      "id": "A-04",
+      "name": "WhatsApp Routing Agent",
+      "icon": "↗",
+      "status": "Active",
+      "task": "Logging manual-route notices",
+      "processed": 8,
+      "hot": 2,
+      "description": "Records simulated direct enquiries only; it never sends or replies to messages."
+    },
+    {
+      "id": "A-05",
+      "name": "Voice Calling Agent",
+      "icon": "☎",
+      "status": "Paused",
+      "task": "No calls permitted in Test Mode",
+      "processed": 0,
+      "hot": 0,
+      "description": "Test-only placeholder. It cannot place calls or contact anyone."
+    },
+    {
+      "id": "A-06",
+      "name": "Follow-up Agent",
+      "icon": "↻",
+      "status": "Active",
+      "task": "Maintaining test queue",
+      "processed": 7,
+      "hot": 1,
+      "description": "Creates internal test tasks; it never sends communications."
+    },
+    {
+      "id": "A-07",
+      "name": "Site Visit Agent",
+      "icon": "▣",
+      "status": "Active",
+      "task": "Preparing visit proposals",
+      "processed": 4,
+      "hot": 4,
+      "description": "Creates internal visit proposals for test records only."
+    },
+    {
+      "id": "A-08",
+      "name": "Investor Discovery Agent",
+      "icon": "◈",
+      "status": "Active",
+      "task": "Reviewing simulated intent",
+      "processed": 9,
+      "hot": 3,
+      "description": "Identifies test investment interest from dummy lead data."
+    },
+    {
+      "id": "A-09",
+      "name": "Property Matching Agent",
+      "icon": "⌂",
+      "status": "Active",
+      "task": "Matching Available inventory",
+      "processed": 20,
+      "hot": 6,
+      "description": "Matches only test properties currently marked Available."
+    },
+    {
+      "id": "A-10",
+      "name": "AI Sales Manager",
+      "icon": "★",
+      "status": "Active",
+      "task": "Prioritizing safe test actions",
+      "processed": 20,
+      "hot": 6,
+      "description": "Summarizes the dummy pipeline and recommends internal test actions."
+    }
+  ],
+  "activities": [
+    {
+      "at": "Test Day 1 · 10:15",
+      "agentId": "A-10",
+      "title": "AI Sales Manager prioritized 6 HOT test leads",
+      "detail": "Internal dashboard recommendation only; no contact was attempted."
+    },
+    {
+      "at": "Test Day 1 · 10:12",
+      "agentId": "A-09",
+      "title": "Property Matching Agent refreshed Available inventory",
+      "detail": "On Hold and Sold test properties were excluded from matches."
+    },
+    {
+      "at": "Test Day 1 · 10:08",
+      "agentId": "A-07",
+      "title": "Site Visit Agent prepared 2 visit proposals",
+      "detail": "Proposals require an internal test approval and are not appointments."
+    },
+    {
+      "at": "Test Day 1 · 10:05",
+      "agentId": "A-06",
+      "title": "Follow-up Agent created test queue items",
+      "detail": "The queue is an internal checklist; no message or call was sent."
+    },
+    {
+      "at": "Test Day 1 · 09:58",
+      "agentId": "A-03",
+      "title": "Lead Scoring Agent classified 20 dummy leads",
+      "detail": "6 HOT, 8 WARM, and 6 COLD leads were assigned."
+    },
+    {
+      "at": "Test Day 1 · 09:50",
+      "agentId": "A-01",
+      "title": "Lead Capture Agent loaded dummy leads",
+      "detail": "All source labels are simulated and not connected to any accounts."
+    }
+  ]
+}
