@@ -352,15 +352,318 @@
     return '<tr><td><strong>' + escapeHtml(lead.name) + '</strong><small>' + escapeHtml(lead.id) + ' · ' + escapeHtml(lead.source) + '</small></td><td><strong>' + escapeHtml(lead.type) + '</strong><small>' + escapeHtml(lead.location) + ' · ' + escapeHtml(lead.timeline) + '</small></td><td><strong>' + formatMoney(lead.budget) + '</strong><small>' + escapeHtml(lead.purpose) + '</small></td><td>' + tierBadge(lead) + '</td><td><span class="tag">' + escapeHtml(lead.stage) + '</span></td><td>' + (lead.dnc ? statusBadge('Blocked') : '<span class="tag">Contactable test record</span>') + '</td><td><div class="table-actions"><button class="link-button" data-action="view-lead" data-id="' + lead.id + '">View</button><button class="link-button muted" data-action="toggle-dnc" data-id="' + lead.id + '">' + (lead.dnc ? 'Allow test workflow' : 'Do Not Contact') + '</button></div></td></tr>';
   }
 
+  // ─────────────────────────────────────────────────────────────
+  //  Properties — add / edit, photos, Google location pin, client view
+  // ─────────────────────────────────────────────────────────────
+  var pendingPhotos = [];   // { dataUrl, caption } waiting to be uploaded
+  var geoDraft = null;      // parsed { lat, lng } for the property form
+
+  function propertyById(id) {
+    return data.properties.filter(function (property) { return property.id === id; })[0] || null;
+  }
+
+  function photoUrl(photo) { return '/media/' + photo.id; }
+
+  function locationLabel(geo) {
+    if (!geo) return '';
+    return geo.area || geo.label || (geo.lat + ', ' + geo.lng);
+  }
+
+  function mapsLink(geo) {
+    if (!geo) return '';
+    return geo.mapsUrl || ('https://www.google.com/maps?q=' + geo.lat + ',' + geo.lng);
+  }
+
+  function mapsEmbed(geo) {
+    return 'https://www.google.com/maps?q=' + encodeURIComponent(geo.lat + ',' + geo.lng) + '&z=15&output=embed';
+  }
+
+  // Google Maps link (Share → Copy link) ya seedha "lat,lng" se coordinates nikaalo.
+  function parseGeoInput(text) {
+    var value = String(text || '').trim();
+    if (!value) return null;
+    var patterns = [
+      /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,          // full place URL
+      /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,              // /@26.91,75.78,15z
+      /[?&]q=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/, // ?q=26.91,75.78
+      /[?&]ll=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/,
+      /(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/ // raw lat,lng
+    ];
+    for (var index = 0; index < patterns.length; index += 1) {
+      var match = value.match(patterns[index]);
+      if (match) {
+        var lat = Number(match[1]);
+        var lng = Number(match[2]);
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat: lat, lng: lng };
+      }
+    }
+    return null;
+  }
+
+  // Browser me photo chhoti karo (Railway storage bachane ke liye): max 1600px, JPEG.
+  function compressImage(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error('Photo padhi nahi ja saki.')); };
+      reader.onload = function () {
+        var image = new Image();
+        image.onerror = function () { reject(new Error('Ye file image nahi hai.')); };
+        image.onload = function () {
+          var scale = Math.min(1, maxDim / Math.max(image.width, image.height));
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function copyText(text, okMessage) {
+    function fallback() {
+      var area = document.createElement('textarea');
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy'); toast(okMessage); } catch (error) { window.prompt('Copy karo:', text); }
+      document.body.removeChild(area);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(okMessage); }).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function refreshState() {
+    return requestServer('GET', '/api/session')
+      .then(function (response) { return response.json(); })
+      .then(function (payload) { if (payload && payload.state) { data = payload.state; render(); } });
+  }
+
   function renderProperties() {
+    var rows = data.properties.map(function (property) {
+      var photos = property.photos || [];
+      var geo = property.geo || null;
+      return '<tr>'
+        + '<td><button type="button" class="link-button strong" data-action="view-property" data-id="' + property.id + '">' + escapeHtml(property.name) + ' ↗</button>'
+        + '<small>' + escapeHtml(property.id) + ' · ' + escapeHtml(property.detail || '') + '</small>'
+        + '<small>' + (photos.length ? '📷 ' + photos.length + ' photo' + (photos.length > 1 ? 's' : '') : '<span class="mut">koi photo nahi</span>')
+        + ' · ' + (geo ? '📍 ' + escapeHtml(locationLabel(geo)) : '<span class="mut">pin nahi</span>') + '</small></td>'
+        + '<td><strong>' + escapeHtml(property.type) + '</strong><small>' + escapeHtml(property.location) + '</small></td>'
+        + '<td><strong>' + formatMoney(property.price) + '</strong><small>' + escapeHtml(String(property.status)) + '</small></td>'
+        + '<td><select aria-label="Set status for ' + escapeHtml(property.name) + '" data-action="change-property-status" data-id="' + property.id + '">'
+        + option('Available', 'Available', property.status) + option('On Hold', 'On Hold', property.status) + option('Sold', 'Sold', property.status) + '</select></td>'
+        + '<td class="row-actions">'
+        + '<button type="button" class="button secondary small" data-action="view-property" data-id="' + property.id + '">👁 Client view</button> '
+        + '<button type="button" class="button secondary small" data-action="edit-property" data-id="' + property.id + '">✏️ Edit</button> '
+        + '<button type="button" class="button secondary small" data-action="copy-share-link" data-id="' + property.id + '">🔗 Link</button>'
+        + '</td></tr>';
+    }).join('');
+    var withPhotos = data.properties.filter(function (p) { return (p.photos || []).length; }).length;
+    var withPin = data.properties.filter(function (p) { return Boolean(p.geo); }).length;
     return ''
-      + '<div class="view-header"><div><h2>Test property inventory</h2><p>Try changing a property’s test status. Only Available properties can be recommended by the matching agent.</p></div><button class="button secondary" data-action="show-view" data-view="leads">Check lead matching</button></div>'
-      + '<div class="kpi-grid">' + kpi('All test properties', data.properties.length, 'Flats, villas, plots, commercial, land') + kpi('Available', data.properties.filter(function (p) { return p.status === 'Available'; }).length, 'Eligible for matching') + kpi('On Hold', data.properties.filter(function (p) { return p.status === 'On Hold'; }).length, 'Excluded from matching') + kpi('Sold', data.properties.filter(function (p) { return p.status === 'Sold'; }).length, 'Excluded from matching') + kpi('Property types', 5, 'All requested categories') + '</div>'
-      + '<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Test property</th><th>Type & location</th><th>Test price</th><th>Availability status</th><th>Matching rule</th></tr></thead><tbody>'
-      + data.properties.map(function (property) {
-        return '<tr><td><strong>' + escapeHtml(property.name) + '</strong><small>' + escapeHtml(property.id) + ' · ' + escapeHtml(property.detail) + '</small></td><td><strong>' + escapeHtml(property.type) + '</strong><small>' + escapeHtml(property.location) + '</small></td><td><strong>' + formatMoney(property.price) + '</strong><small>Dummy inventory value</small></td><td><select aria-label="Set status for ' + escapeHtml(property.name) + '" data-action="change-property-status" data-id="' + property.id + '">' + option('Available', 'Available', property.status) + option('On Hold', 'On Hold', property.status) + option('Sold', 'Sold', property.status) + '</select></td><td>' + (property.status === 'Available' ? '<span class="status available">Included in matches</span>' : '<span class="status ' + statusClass(property.status) + '">Excluded from matches</span>') + '</td></tr>';
-      }).join('')
-      + '</tbody></table></div><p class="footer-note">Status changes affect only this local test dataset. No listing portal, buyer, seller, or external account is updated.</p>';
+      + '<div class="view-header"><div><h2>Property inventory</h2><p>Photos aur Google location pin add karo. Jab client WhatsApp par maange to AI ke draft me photo/location khud lag jaati hai — approve karne par hi jaati hai.</p></div>'
+      + '<button class="button primary" data-action="open-add-property">＋ Add property</button></div>'
+      + '<div class="kpi-grid">'
+      + kpi('Total properties', data.properties.length, 'Flats, villas, plots, commercial, land')
+      + kpi('Available', data.properties.filter(function (p) { return p.status === 'Available'; }).length, 'Eligible for matching')
+      + kpi('Photos added', withPhotos, 'Photo wali properties')
+      + kpi('Location pins', withPin, 'Map pin wali properties')
+      + kpi('On hold + Sold', data.properties.filter(function (p) { return p.status !== 'Available'; }).length, 'Excluded from matching')
+      + '</div>'
+      + '<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Property · media</th><th>Type & location</th><th>Price / status</th><th>Availability</th><th>Actions</th></tr></thead><tbody>'
+      + (rows || '<tr><td colspan="5">Abhi koi property nahi. "＋ Add property" dabao.</td></tr>')
+      + '</tbody></table></div><p class="footer-note">Photos aur location pin sirf property ki details ke liye hain — status change matching ko affect karta hai.</p>';
+  }
+
+  // ── Client view: gallery + Google map + "bhejo" actions ──
+  function showPropertyModal(id) {
+    var property = propertyById(id);
+    if (!property) return;
+    var photos = property.photos || [];
+    var geo = property.geo || null;
+    var gallery = photos.length
+      ? '<div class="gallery-grid">' + photos.map(function (photo, index) {
+          return '<button type="button" class="shot" data-action="open-lightbox" data-src="' + photoUrl(photo) + '">'
+            + '<img src="' + photoUrl(photo) + '" alt="' + escapeHtml(property.name) + ' photo ' + (index + 1) + '" loading="lazy"></button>';
+        }).join('') + '</div>'
+      : '<div class="empty">Abhi koi photo nahi hai. <b>✏️ Edit</b> se photos upload karo — client ko dikhane ke liye yahi gallery use hogi.</div>';
+    var mapBlock = geo
+      ? '<iframe class="map-frame" src="' + mapsEmbed(geo) + '" loading="lazy" title="Property map" referrerpolicy="no-referrer-when-downgrade"></iframe>'
+        + '<p class="pin-line">📍 <b>' + escapeHtml(locationLabel(geo)) + '</b> · <a href="' + escapeHtml(mapsLink(geo)) + '" target="_blank" rel="noopener">Google Maps me kholo ↗</a></p>'
+      : '<div class="empty">Location pin nahi hai. <b>✏️ Edit</b> kholo → client ka Google Maps link paste karo → "Pin nikalo" dabao.</div>';
+    var leadOptions = data.leads.filter(function (lead) { return !lead.dnc; }).map(function (lead) {
+      return option(lead.id, lead.name + ' — ' + scoreTier(lead) + ' · ' + lead.type, '');
+    }).join('');
+    showModal(property.name, property.type + ' · ' + property.location + ' · ' + formatMoney(property.price), ''
+      + gallery
+      + '<div class="detail-summary" style="grid-template-columns:repeat(4,1fr)">'
+      +   '<div class="detail-box"><span>Price</span><strong>' + formatMoney(property.price) + '</strong></div>'
+      +   '<div class="detail-box"><span>Type</span><strong>' + escapeHtml(property.type) + '</strong></div>'
+      +   '<div class="detail-box"><span>Status</span><strong>' + escapeHtml(property.status) + '</strong></div>'
+      +   '<div class="detail-box"><span>Photos</span><strong>' + photos.length + '</strong></div>'
+      + '</div>'
+      + '<div class="detail-box" style="margin-bottom:14px"><span>Detail</span><strong>' + escapeHtml(property.detail || '—') + '</strong></div>'
+      + mapBlock
+      + '<div class="card" style="margin-top:16px"><div class="card-head"><h3>📤 Client ko bhejo (WhatsApp draft)</h3></div>'
+      +   '<div class="form-grid">'
+      +     '<label>Lead<select id="prop-send-lead">' + leadOptions + '</select></label>'
+      +   '</div>'
+      +   '<div class="modal-foot" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">'
+      +     '<button type="button" class="button primary small" data-action="send-property" data-id="' + property.id + '" data-attach="photos">📷 Photos bhejo</button>'
+      +     '<button type="button" class="button primary small" data-action="send-property" data-id="' + property.id + '" data-attach="location">📍 Location bhejo</button>'
+      +     '<button type="button" class="button secondary small" data-action="send-property" data-id="' + property.id + '" data-attach="both">📷📍 Dono bhejo</button>'
+      +   '</div>'
+      +   '<p class="mut" style="font-size:12px;margin-top:8px">Draft Inbox me banega — <b>Approve</b> karne par hi client ko jaayega. TEST mode me sirf dry run hota hai.</p>'
+      + '</div>'
+      + '<div class="modal-foot"><button type="button" class="button secondary" data-action="close-modal">Close</button>'
+      +   '<button type="button" class="button secondary" data-action="copy-share-link" data-id="' + property.id + '">🔗 Public link copy karo</button>'
+      +   '<button type="button" class="button primary" data-action="edit-property" data-id="' + property.id + '">✏️ Edit</button></div>', true);
+  }
+
+  // ── Add / Edit property form (photos + location pin) ──
+  function showPropertyFormModal(id) {
+    var property = id ? propertyById(id) : null;
+    pendingPhotos = [];
+    geoDraft = property && property.geo ? { lat: property.geo.lat, lng: property.geo.lng } : null;
+    var photos = property ? (property.photos || []) : [];
+    var locations = ['Jaipur', 'Vaishali Nagar', 'Mansarovar', 'Jagatpura', 'Malviya Nagar', 'C-Scheme', 'Tonk Road', 'Ajmer Road', 'Sikar Road', 'Ring Road'];
+    var gallery = photos.length
+      ? '<div class="gallery-grid">' + photos.map(function (photo, index) {
+          return '<div class="shot"><img src="' + photoUrl(photo) + '" alt="photo ' + (index + 1) + '">'
+            + '<button type="button" class="shot-delete" title="Photo hatao" data-action="remove-photo" data-id="' + property.id + '" data-media="' + photo.id + '">×</button></div>';
+        }).join('') + '</div>'
+      : '';
+    showModal(property ? ('Edit: ' + property.name) : 'Add property', 'Photos aur Google Maps location pin — client ko yahi dikhega.', ''
+      + '<form id="property-form" data-id="' + (property ? property.id : '') + '"><div class="form-grid">'
+      +   '<label>Property ka naam<input name="name" required maxlength="80" value="' + (property ? escapeHtml(property.name) : '') + '" placeholder="e.g. Shanti Residency"></label>'
+      +   '<label>Type<select name="type">' + propertyTypeOptions(property ? property.type : 'Flat') + '</select></label>'
+      +   '<label>Area / Location<input name="location" list="area-list" required value="' + (property ? escapeHtml(property.location) : '') + '" placeholder="e.g. Vaishali Nagar">'
+      +     '<datalist id="area-list">' + locations.map(function (name) { return '<option value="' + escapeHtml(name) + '"></option>'; }).join('') + '</datalist></label>'
+      +   '<label>Price (₹)<input name="price" type="number" min="0" required value="' + (property ? property.price : 6000000) + '"></label>'
+      +   '<label>Status<select name="status">' + option('Available', 'Available', property ? property.status : 'Available') + option('On Hold', 'On Hold', '') + option('Sold', 'Sold', '') + '</select></label>'
+      +   '<label>Detail<textarea name="detail" rows="2" placeholder="e.g. 3 BHK · 1450 sqft · 2nd floor">' + (property ? escapeHtml(property.detail || '') : '') + '</textarea></label>'
+      + '</div>'
+      + '<div class="card" style="margin-top:6px"><div class="card-head"><h3>📍 Google location pin</h3></div>'
+      +   '<label>Google Maps link paste karo <span class="mut">(phone me: Maps → Share → Copy link)</span>'
+      +     '<input id="geo-input" placeholder="https://maps.app.goo.gl/... ya 26.9124, 75.7873"></label>'
+      +   '<div class="form-grid" style="margin-top:10px">'
+      +     '<label>Latitude<input id="geo-lat" type="number" step="any" placeholder="26.9124" value="' + (geoDraft ? geoDraft.lat : '') + '"></label>'
+      +     '<label>Longitude<input id="geo-lng" type="number" step="any" placeholder="75.7873" value="' + (geoDraft ? geoDraft.lng : '') + '"></label>'
+      +   '</div>'
+      +   '<div class="modal-foot" style="justify-content:flex-start;gap:8px"><button type="button" class="button secondary small" data-action="parse-geo">🔎 Pin nikalo</button>'
+      +     '<button type="button" class="button secondary small" data-action="clear-geo">✖ Pin hatao</button></div>'
+      +   '<div id="geo-status" class="mut" style="font-size:12px;margin-top:6px">' + (geoDraft ? '📍 Pin set: ' + geoDraft.lat + ', ' + geoDraft.lng : (property && property.geo ? '📍 Pin set: ' + property.geo.lat + ', ' + property.geo.lng : 'Abhi koi pin nahi.')) + '</div>'
+      +   '<div id="geo-map"></div>'
+      + '</div>'
+      + '<div class="card" style="margin-top:12px"><div class="card-head"><h3>📷 Photos</h3></div>'
+      +   gallery
+      +   '<label class="upload-label">Photo chuno (ek saath kai chalengi — auto compress hongi)<input id="photo-input" type="file" accept="image/*" multiple></label>'
+      +   '<div id="pending-photos" class="gallery-grid"></div>'
+      +   '<p class="mut" style="font-size:12px">Max 12 photos per property · har photo 5 MB tak (browser khud chhota kar deta hai).</p>'
+      + '</div>'
+      + '<div class="modal-foot"><button type="button" class="button secondary" data-action="close-modal">Cancel</button>'
+      +   '<button type="submit" class="button primary">' + (property ? '💾 Save karo' : '＋ Property add karo') + '</button></div></form>');
+    renderGeoMapPreview();
+  }
+
+  function renderGeoMapPreview() {
+    var node = document.getElementById('geo-map');
+    if (!node) return;
+    node.innerHTML = geoDraft
+      ? '<iframe class="map-frame" style="margin-top:10px" src="' + mapsEmbed(geoDraft) + '" loading="lazy" title="Pin preview"></iframe>'
+      : '';
+  }
+
+  function renderPendingPhotos() {
+    var node = document.getElementById('pending-photos');
+    if (!node) return;
+    node.innerHTML = pendingPhotos.map(function (photo, index) {
+      return '<div class="shot"><img src="' + photo.dataUrl + '" alt="new photo ' + (index + 1) + '">'
+        + '<button type="button" class="shot-delete" data-action="drop-pending-photo" data-index="' + index + '">×</button></div>';
+    }).join('');
+  }
+
+  async function handlePhotoPick(input) {
+    var files = Array.prototype.slice.call(input.files || []);
+    input.value = '';
+    for (var index = 0; index < files.length; index += 1) {
+      try {
+        var dataUrl = await compressImage(files[index], 1600, 0.82);
+        pendingPhotos.push({ dataUrl: dataUrl, caption: '' });
+      } catch (error) {
+        toast(error.message, true);
+      }
+    }
+    renderPendingPhotos();
+    if (files.length) toast(files.length + ' photo ready — "Save" dabao to upload hongi.');
+  }
+
+  async function uploadPendingPhotos(propertyId) {
+    var uploaded = 0;
+    for (var index = 0; index < pendingPhotos.length; index += 1) {
+      var response = await requestServer('POST', '/api/properties/' + propertyId + '/photos', { dataUrl: pendingPhotos[index].dataUrl, caption: pendingPhotos[index].caption });
+      var payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Photo upload fail hui.');
+      uploaded += 1;
+    }
+    pendingPhotos = [];
+    return uploaded;
+  }
+
+  async function savePropertyForm(form) {
+    var values = new FormData(form);
+    var id = form.getAttribute('data-id');
+    var lat = document.getElementById('geo-lat');
+    var lng = document.getElementById('geo-lng');
+    var geo = null;
+    if (lat && lng && lat.value !== '' && lng.value !== '') {
+      geo = { lat: Number(lat.value), lng: Number(lng.value), label: values.get('name'), area: values.get('location') };
+    }
+    var payload = {
+      name: values.get('name'), type: values.get('type'), location: values.get('location'),
+      price: Number(values.get('price')), status: values.get('status'), detail: values.get('detail'), geo: geo
+    };
+    var response = await requestServer(id ? 'PUT' : 'POST', id ? '/api/properties/' + id : '/api/properties', payload);
+    var result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Save nahi hua.');
+    var propertyId = result.property.id;
+    var uploaded = 0;
+    if (pendingPhotos.length) uploaded = await uploadPendingPhotos(propertyId);
+    await refreshState();
+    closeModal();
+    setView('properties');
+    toast((id ? 'Property update ho gayi' : 'Property add ho gayi') + (uploaded ? ' — ' + uploaded + ' photo upload hui' : '') + '.');
+  }
+
+  function sendPropertyAttachment(propertyId, attach) {
+    var leadSelect = document.getElementById('prop-send-lead');
+    var property = propertyById(propertyId);
+    requestServer('POST', '/api/outbox/ai-draft', {
+      leadId: leadSelect ? leadSelect.value : '', channel: 'whatsapp', inbound: '', propertyId: propertyId, attach: attach
+    })
+      .then(function (response) { return response.json().then(function (payload) { if (!response.ok) throw new Error(payload.error || 'Draft fail hua.'); return payload; }); })
+      .then(function (payload) {
+        closeModal();
+        setView('inbox');
+        toast('Draft ready (' + (property ? property.name : '') + ') — Inbox me approve karo, tabhi client ko jaayega.');
+      })
+      .catch(function (error) { toast(error.message, true); });
+  }
+
+  function openLightbox(src) {
+    var root = document.getElementById('lightbox-root');
+    if (!root) return;
+    root.innerHTML = '<div class="lightbox" data-action="close-lightbox"><img src="' + src + '" alt="Property photo"></div>';
+  }
+
+  function closeLightbox() {
+    var root = document.getElementById('lightbox-root');
+    if (root) root.innerHTML = '';
   }
 
   function renderFollowups() {
@@ -681,6 +984,11 @@
       render();
       return;
     }
+    if (form.id === 'property-form') {
+      event.preventDefault();
+      savePropertyForm(form).catch(function (error) { toast(error.message, true); });
+      return;
+    }
     if (form.id === 'add-lead-form') {
       event.preventDefault();
       var values = new FormData(form);
@@ -776,6 +1084,50 @@
     else if (action === 'create-ai-draft') createAiDraft();
     else if (action === 'approve-outbox') outboxAction('approve', target.getAttribute('data-id'));
     else if (action === 'reject-outbox') outboxAction('reject', target.getAttribute('data-id'));
+    else if (action === 'open-add-property') showPropertyFormModal();
+    else if (action === 'view-property') showPropertyModal(target.getAttribute('data-id'));
+    else if (action === 'edit-property') showPropertyFormModal(target.getAttribute('data-id'));
+    else if (action === 'send-property') sendPropertyAttachment(target.getAttribute('data-id'), target.getAttribute('data-attach'));
+    else if (action === 'parse-geo') {
+      var geoText = document.getElementById('geo-input') ? document.getElementById('geo-input').value : '';
+      var parsed = parseGeoInput(geoText);
+      if (!parsed) {
+        toast('Pin nahi mila. Poora Google Maps link paste karo (Share → Copy link), ya lat,lng khud likho.', true);
+      } else {
+        geoDraft = parsed;
+        document.getElementById('geo-lat').value = parsed.lat;
+        document.getElementById('geo-lng').value = parsed.lng;
+        document.getElementById('geo-status').innerHTML = '📍 Pin set: ' + parsed.lat + ', ' + parsed.lng;
+        renderGeoMapPreview();
+        toast('📍 Location pin mil gaya!');
+      }
+    }
+    else if (action === 'clear-geo') {
+      geoDraft = null;
+      if (document.getElementById('geo-input')) document.getElementById('geo-input').value = '';
+      if (document.getElementById('geo-lat')) document.getElementById('geo-lat').value = '';
+      if (document.getElementById('geo-lng')) document.getElementById('geo-lng').value = '';
+      if (document.getElementById('geo-status')) document.getElementById('geo-status').textContent = 'Abhi koi pin nahi.';
+      renderGeoMapPreview();
+    }
+    else if (action === 'drop-pending-photo') {
+      pendingPhotos.splice(Number(target.getAttribute('data-index')), 1);
+      renderPendingPhotos();
+    }
+    else if (action === 'remove-photo') {
+      var removePropertyId = target.getAttribute('data-id');
+      var removeMediaId = target.getAttribute('data-media');
+      requestServer('DELETE', '/api/properties/' + removePropertyId + '/photos/' + removeMediaId, undefined)
+        .then(function (response) { return response.json().then(function (payload) { if (!response.ok) throw new Error(payload.error || 'Photo delete nahi hui.'); return payload; }); })
+        .then(function () { toast('Photo hata di.'); return refreshState().then(function () { showPropertyFormModal(removePropertyId); }); })
+        .catch(function (error) { toast(error.message, true); });
+    }
+    else if (action === 'copy-share-link') {
+      var shareId = target.getAttribute('data-id');
+      copyText(location.origin + '/p/' + shareId, '🔗 Client link copy ho gaya — WhatsApp par bhej sakte ho.');
+    }
+    else if (action === 'open-lightbox') openLightbox(target.getAttribute('data-src'));
+    else if (action === 'close-lightbox') closeLightbox();
     else if (action === 'close-modal') closeModal();
     else if (action === 'close-modal-backdrop' && event.target === target) closeModal();
   }
@@ -784,6 +1136,10 @@
     var target = event.target;
     if (target.getAttribute('data-action') === 'change-property-status') {
       updatePropertyStatus(target.getAttribute('data-id'), target.value);
+      return;
+    }
+    if (target.id === 'photo-input') {
+      handlePhotoPick(target);
     }
   }
 
@@ -821,7 +1177,20 @@
       +   '<div class="form-grid">'
       +     '<label>Lead<select id="draft-lead">' + leadOptions + '</select></label>'
       +     '<label>Channel<select id="draft-channel">' + option('whatsapp', 'WhatsApp', 'whatsapp') + option('instagram', 'Instagram', 'whatsapp') + '</select></label>'
-      +     '<label class="full">Customer ka message (paste karo)<textarea id="draft-inbound" rows="3" placeholder="Sir price kya hai? Site visit kab ho sakti hai?"></textarea></label>'
+      +     '<label class="full">Customer ka message (paste karo)<textarea id="draft-inbound" rows="3" placeholder="Sir price kya hai? Site visit kab ho sakti hai? Photo aur location bhejo"></textarea></label>'
+      +     '<label>Property (photo / location ke liye)<select id="draft-property">'
+      +       '<option value="">Auto — lead se best match</option>'
+      +       data.properties.map(function (p) {
+              return option(p.id, p.name + ' · ' + p.type + (p.photos && p.photos.length ? ' 📷' + p.photos.length : '') + (p.geo ? ' 📍' : ''), '');
+            }).join('')
+      +     '</select></label>'
+      +     '<label>Kya bhejna hai<select id="draft-attach">'
+      +       option('auto', 'Auto — message padh ke decide karo', 'auto')
+      +       option('both', 'Photos + Location dono', '')
+      +       option('photos', 'Sirf photos', '')
+      +       option('location', 'Sirf location pin', '')
+      +       option('none', 'Sirf text (kuch nahi)', '')
+      +     '</select></label>'
       +   '</div>'
       +   '<div class="modal-foot" style="justify-content:flex-start"><button class="button primary" data-action="create-ai-draft">🤖 Draft banao (approval ke liye)</button></div>'
       + '</section>'
@@ -847,6 +1216,20 @@
       +   '<div id="ingest-preview" style="margin-top:10px"></div>'
       + '</section>'
       + '<section class="card"><div class="card-head"><h3>📬 Outbox (approval queue)</h3></div><div id="inbox-list" class="mut">Loading…</div></section>';
+  }
+
+  function attachmentBlock(meta) {
+    var attachments = meta && meta.attachments;
+    if (!attachments) return '';
+    var chips = [];
+    if (attachments.photos && attachments.photos.length) chips.push('📷 ' + attachments.photos.length + ' photo' + (attachments.photos.length > 1 ? 's' : ''));
+    if (attachments.location) chips.push('📍 ' + escapeHtml(attachments.location.area || attachments.location.label || 'location pin'));
+    if (!chips.length) return '';
+    var thumbs = (attachments.photos || []).map(function (photo) {
+      return '<button type="button" class="outbox-thumb" data-action="open-lightbox" data-src="' + photoUrl(photo) + '"><img src="' + photoUrl(photo) + '" alt="photo"></button>';
+    }).join('');
+    return '<div class="attach-row"><span class="attach-chip">' + escapeHtml((attachments.propertyName ? attachments.propertyName + ' · ' : '') + chips.join(' + ')) + '</span>'
+      + (thumbs ? '<span class="attach-thumbs">' + thumbs + '</span>' : '') + '</div>';
   }
 
   function loadInbox() {
@@ -882,6 +1265,7 @@
             + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">'
             + '<div><b>' + escapeHtml(item.lead_name || item.lead_id) + '</b> <span class="mut">· ' + channelLabel(item.channel) + ' → ' + escapeHtml(item.to_handle || '(no contact)') + '</span></div>'
             + '<div>' + badge(item.status, item.status) + (item.ai_generated ? ' ' + badge('AI', 'rejected') : '') + '</div></div>'
+            + attachmentBlock(item.meta)
             + '<p style="margin:8px 0;font-size:13px;line-height:1.6">' + escapeHtml(item.body) + '</p>'
             + (item.blocked_reason ? '<p style="color:#ff9d9d;font-size:12px;margin:6px 0">🚫 ' + escapeHtml(item.blocked_reason) + '</p>' : '')
             + '<div class="mut" style="font-size:11px;margin-bottom:8px">' + escapeHtml(String(item.created_at).slice(0, 16)) + ' · by ' + escapeHtml(item.created_by || '') + (item.approved_by ? ' · approved by ' + escapeHtml(item.approved_by) : '') + '</div>'
@@ -899,10 +1283,14 @@
     var channelSelect = document.getElementById('draft-channel');
     var inboundNode = document.getElementById('draft-inbound');
     if (!leadSelect) return;
+    var propertySelect = document.getElementById('draft-property');
+    var attachSelect = document.getElementById('draft-attach');
     requestServer('POST', '/api/outbox/ai-draft', {
       leadId: leadSelect.value,
       channel: channelSelect ? channelSelect.value : 'whatsapp',
-      inbound: inboundNode ? inboundNode.value : ''
+      inbound: inboundNode ? inboundNode.value : '',
+      propertyId: propertySelect ? propertySelect.value : '',
+      attach: attachSelect ? attachSelect.value : 'auto'
     })
       .then(function (response) { return response.json().then(function (payload) { if (!response.ok) throw new Error(payload.error || 'Draft failed.'); return payload; }); })
       .then(function (payload) {

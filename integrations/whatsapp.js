@@ -21,6 +21,35 @@ function createWhatsApp(config) {
     return { providerMessageId: result.body?.messages?.[0]?.id || null, raw: result.body };
   }
 
+  // Send a photo by public URL (Meta downloads it — it must be reachable without login).
+  async function sendImage({ to, link, caption = '' }) {
+    if (!wa.phoneNumberId || !wa.token) throw new Error('WhatsApp is not configured.');
+    const image = { link };
+    if (caption) image.caption = String(caption).slice(0, 1000);
+    const result = await fetchJson(url('/messages'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${wa.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'image', image })
+    });
+    if (!result.ok) throw new Error(`WhatsApp image send failed (${result.status}): ${JSON.stringify(result.body).slice(0, 300)}`);
+    return { providerMessageId: result.body?.messages?.[0]?.id || null, raw: result.body };
+  }
+
+  // Native WhatsApp location card (pin) — customer can tap it to open Google Maps.
+  async function sendLocation({ to, latitude, longitude, name = '', address = '' }) {
+    if (!wa.phoneNumberId || !wa.token) throw new Error('WhatsApp is not configured.');
+    const location = { latitude, longitude };
+    if (name) location.name = String(name).slice(0, 200);
+    if (address) location.address = String(address).slice(0, 400);
+    const result = await fetchJson(url('/messages'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${wa.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'location', location })
+    });
+    if (!result.ok) throw new Error(`WhatsApp location send failed (${result.status}): ${JSON.stringify(result.body).slice(0, 300)}`);
+    return { providerMessageId: result.body?.messages?.[0]?.id || null, raw: result.body };
+  }
+
   async function sendTemplate({ to, name, language = 'en', bodyParams = [] }) {
     if (!wa.phoneNumberId || !wa.token) throw new Error('WhatsApp is not configured.');
     const payload = {
@@ -83,7 +112,7 @@ function createWhatsApp(config) {
     return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
-  return { sendText, sendTemplate, verifyWebhook, parseWebhook, verifySignature };
+  return { sendText, sendImage, sendLocation, sendTemplate, verifyWebhook, parseWebhook, verifySignature };
 }
 
 module.exports = { createWhatsApp };

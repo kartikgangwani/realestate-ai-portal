@@ -289,7 +289,15 @@
       "location": "Lake View",
       "price": 6500000,
       "status": "Available",
-      "detail": "3 BHK • Test inventory"
+      "detail": "3 BHK • Test inventory",
+      "photos": [],
+      "geo": {
+        "lat": 26.9124,
+        "lng": 75.7873,
+        "label": "Azure Heights",
+        "area": "Lake View, Jaipur",
+        "mapsUrl": "https://www.google.com/maps?q=26.9124,75.7873"
+      }
     },
     {
       "id": "P-102",
@@ -298,7 +306,9 @@
       "location": "Central Avenue",
       "price": 8200000,
       "status": "Available",
-      "detail": "3 BHK • Test inventory"
+      "detail": "3 BHK • Test inventory",
+      "photos": [],
+      "geo": null
     },
     {
       "id": "P-103",
@@ -307,7 +317,9 @@
       "location": "Lake View",
       "price": 7200000,
       "status": "On Hold",
-      "detail": "4 BHK • Test inventory"
+      "detail": "4 BHK • Test inventory",
+      "photos": [],
+      "geo": null
     },
     {
       "id": "P-104",
@@ -316,7 +328,15 @@
       "location": "West Park",
       "price": 11500000,
       "status": "Available",
-      "detail": "4 BHK villa • Test inventory"
+      "detail": "4 BHK villa • Test inventory",
+      "photos": [],
+      "geo": {
+        "lat": 26.8957,
+        "lng": 75.7521,
+        "label": "Palm Enclave",
+        "area": "West Park, Jaipur",
+        "mapsUrl": "https://www.google.com/maps?q=26.8957,75.7521"
+      }
     },
     {
       "id": "P-105",
@@ -325,7 +345,9 @@
       "location": "West Park",
       "price": 9800000,
       "status": "Sold",
-      "detail": "3 BHK villa • Test inventory"
+      "detail": "3 BHK villa • Test inventory",
+      "photos": [],
+      "geo": null
     },
     {
       "id": "P-106",
@@ -334,7 +356,15 @@
       "location": "Green Meadows",
       "price": 5800000,
       "status": "Available",
-      "detail": "240 sq yd • Test inventory"
+      "detail": "240 sq yd • Test inventory",
+      "photos": [],
+      "geo": {
+        "lat": 26.8467,
+        "lng": 75.8091,
+        "label": "Greenfield Plots",
+        "area": "Green Meadows, Jaipur",
+        "mapsUrl": "https://www.google.com/maps?q=26.8467,75.8091"
+      }
     },
     {
       "id": "P-107",
@@ -343,7 +373,9 @@
       "location": "Green Meadows",
       "price": 4400000,
       "status": "Available",
-      "detail": "180 sq yd • Test inventory"
+      "detail": "180 sq yd • Test inventory",
+      "photos": [],
+      "geo": null
     },
     {
       "id": "P-108",
@@ -352,7 +384,9 @@
       "location": "Tech Square",
       "price": 8800000,
       "status": "Available",
-      "detail": "Office unit • Test inventory"
+      "detail": "Office unit • Test inventory",
+      "photos": [],
+      "geo": null
     },
     {
       "id": "P-109",
@@ -361,7 +395,9 @@
       "location": "Tech Square",
       "price": 7600000,
       "status": "On Hold",
-      "detail": "Retail unit • Test inventory"
+      "detail": "Retail unit • Test inventory",
+      "photos": [],
+      "geo": null
     },
     {
       "id": "P-110",
@@ -370,7 +406,9 @@
       "location": "Riverside",
       "price": 12500000,
       "status": "Available",
-      "detail": "1 acre • Test inventory"
+      "detail": "1 acre • Test inventory",
+      "photos": [],
+      "geo": null
     }
   ],
   "followups": [

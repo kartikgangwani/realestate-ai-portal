@@ -15,7 +15,7 @@ A private, login-protected workspace for practising and demonstrating a real-est
 |---|---|
 | **Dashboard** | Live snapshot: HOT leads, available inventory, due follow-ups, pending site visits, agent activity |
 | **Test Leads** | 20 dummy leads with source, requirement, budget, purpose, timeline, priority score, DNC flag |
-| **Properties** | 10 dummy properties with type, location, price, status (Available / On Hold / Sold) |
+| **Properties** | Add/edit properties with **photos** (uploaded from your phone) + **Google Maps location pin**. Client view (gallery + map), public share link `/p/<id>`, and AI can send photos + location on WhatsApp/Instagram after your approval |
 | **Follow-ups** | Internal task queue with owners and due labels |
 | **Site Visits** | Visit proposals with status tracking |
 | **AI Agents** | 10 simulated agents (Lead Capture → Property Matching → AI Sales Manager) with on/off control and audit log |

@@ -11,11 +11,105 @@ function normalizeHandle(channel, handle) {
   return value;
 }
 
+
+// ── Attachment helpers (photos + location pin) ───────────────────────────────
+// A draft can carry property photos and/or a location pin along with its text.
+// Nothing is fetched from the network until a human approves the draft.
+const PHOTO_WORDS = /(photo|photos|pic|pics|picture|images?|tasveer|snap|gallery|dikha|dikhao|dekhna|dekhni)/i;
+const LOCATION_WORDS = /(location|address|pata|kahan|kaha|map|direction|directions|reach|route|pin|kaise pahunch|nazdeek|pass hai)/i;
+
+function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+
+function cleanGeo(geo) {
+  if (!geo) return null;
+  const lat = Number(geo.lat);
+  const lng = Number(geo.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return {
+    lat, lng,
+    label: String(geo.label || '').slice(0, 120),
+    area: String(geo.area || '').slice(0, 200),
+    mapsUrl: String(geo.mapsUrl || '').slice(0, 500) || `https://www.google.com/maps?q=${lat},${lng}`
+  };
+}
+
+// Pick the best Available property for a lead (type + location + budget closeness).
+function autoMatchProperty(lead, properties) {
+  const available = (properties || []).filter(function (p) { return p && p.status === 'Available'; });
+  if (!available.length) return null;
+  let best = null;
+  let bestScore = -1;
+  available.forEach(function (property) {
+    let score = 0;
+    if (String(property.type).toLowerCase() === String(lead.type).toLowerCase()) score += 40;
+    if (String(property.location).toLowerCase() === String(lead.location).toLowerCase()) score += 25;
+    const budget = Number(lead.budget) || 0;
+    const price = Number(property.price) || 0;
+    if (budget && price) {
+      const diff = Math.abs(price - budget) / budget;
+      score += diff <= 0.15 ? 20 : diff <= 0.35 ? 12 : diff <= 0.6 ? 5 : 0;
+    }
+    if (Array.isArray(property.photos) && property.photos.length) score += 5;
+    if (cleanGeo(property.geo)) score += 5;
+    if (score > bestScore) { bestScore = score; best = property; }
+  });
+  return best;
+}
+
 function createOutbox({ pool, config, safety, whatsapp, instagram, llm }) {
   async function getLead(leadId) {
     const result = await pool.query("SELECT state->'leads' AS leads FROM app_state WHERE singleton = TRUE");
     const leads = result.rows[0]?.leads || [];
     return leads.find((lead) => lead.id === leadId) || null;
+  }
+
+  async function getProperties() {
+    const result = await pool.query("SELECT state->'properties' AS properties FROM app_state WHERE singleton = TRUE");
+    return result.rows[0]?.properties || [];
+  }
+
+  async function getProperty(propertyId) {
+    const properties = await getProperties();
+    return properties.find((property) => property.id === propertyId) || null;
+  }
+
+  // Public URL that Meta can fetch without a login (photos are served from /media/<id>).
+  function publicMediaUrl(mediaId) {
+    if (!config.publicBaseUrl) {
+      throw new Error('PUBLIC_BASE_URL is not set. WhatsApp/Instagram need a public https address (e.g. your Railway domain) to fetch the photo. Add PUBLIC_BASE_URL in the server settings.');
+    }
+    return `${config.publicBaseUrl}/media/${mediaId}`;
+  }
+
+  // Decide which attachments a draft should carry. attach: auto | photos | location | both | none
+  async function resolveAttachments({ lead, propertyId, attach, inbound }) {
+    const mode = ['auto', 'photos', 'location', 'both', 'none'].includes(attach) ? attach : 'auto';
+    if (mode === 'none') return null;
+    const properties = await getProperties();
+    const property = propertyId ? properties.find((p) => p.id === propertyId) : autoMatchProperty(lead, properties);
+    if (!property) return null;
+
+    const text = String(inbound || '');
+    const wantsPhotos = mode === 'photos' || mode === 'both' || mode === 'auto' && (PHOTO_WORDS.test(text) || !text);
+    const wantsLocation = mode === 'location' || mode === 'both' || mode === 'auto' && (!text || LOCATION_WORDS.test(text));
+
+    const photos = (wantsPhotos && Array.isArray(property.photos) ? property.photos : [])
+      .filter((photo) => photo && photo.id)
+      .slice(0, 5)
+      .map((photo) => ({ id: photo.id, caption: String(photo.caption || '').slice(0, 120) }));
+    const geo = wantsLocation ? cleanGeo(property.geo) : null;
+
+    if (!photos.length && !geo) return null;
+    return { propertyId: property.id, propertyName: property.name, photos, location: geo };
+  }
+
+  function attachmentSummary(attachments) {
+    if (!attachments) return '';
+    const parts = [];
+    if (attachments.photos?.length) parts.push(`${attachments.photos.length} photo${attachments.photos.length > 1 ? 's' : ''}`);
+    if (attachments.location) parts.push('location pin');
+    return parts.length ? `${attachments.propertyName || ''} — ${parts.join(' + ')}`.trim() : '';
   }
 
   async function getContact(leadId, channel) {
@@ -73,13 +167,14 @@ function createOutbox({ pool, config, safety, whatsapp, instagram, llm }) {
     return result.rows[0];
   }
 
-  async function draftWithAI({ leadId, channel, inbound = '', createdBy, languageHint = '' }) {
+  async function draftWithAI({ leadId, channel, inbound = '', createdBy, languageHint = '', propertyId = '', attach = 'auto' }) {
     const lead = await getLead(leadId);
     if (!lead) throw new Error(`Lead ${leadId} not found.`);
-    const body = await llm.draftReply({ lead, inbound, channel, languageHint });
+    const attachments = await resolveAttachments({ lead, propertyId, attach, inbound });
+    const body = await llm.draftReply({ lead, inbound, channel, languageHint, attachmentHint: attachmentSummary(attachments) });
     const classification = inbound ? await llm.classify(inbound).catch(() => null) : null;
     return createDraft({ leadId, channel, body, kind: 'reply', aiGenerated: true, createdBy,
-      meta: { model: config.llm.model, provider: config.llm.provider, inbound, classification } });
+      meta: { model: config.llm.model, provider: config.llm.provider, inbound, classification, attachments } });
   }
 
   async function list({ limit = 50 } = {}) {
@@ -117,28 +212,68 @@ function createOutbox({ pool, config, safety, whatsapp, instagram, llm }) {
       throw new Error(`Blocked at send time: ${check.reason}`);
     }
 
+    // Attachments decided at draft time (photos + location pin).
+    const attachments = (item.meta && item.meta.attachments) || null;
+    const photos = attachments && Array.isArray(attachments.photos) ? attachments.photos : [];
+    const location = attachments && attachments.location ? attachments.location : null;
+    const parts = [];
+    if (item.body) parts.push('text');
+    if (photos.length) parts.push(photos.length + ' photo(s)');
+    if (location) parts.push('location pin');
+    const summary = parts.join(' + ') || 'nothing';
+
     // Dry run: TEST mode or unconfigured channel -> log what would have been sent.
     const dryRun = !config.live || (item.channel === 'whatsapp' ? !config.meta.whatsapp.token : !config.meta.instagram.token);
     if (dryRun) {
       await pool.query(
         "UPDATE outbox SET status='dry_run', approved_by=$2, approved_at=NOW(), meta = meta || $3::jsonb WHERE id=$1",
-        [id, user, JSON.stringify({ dryRun: true, note: 'TEST mode / channel not configured — nothing left the server.' })]
+        [id, user, JSON.stringify({ dryRun: true, wouldHaveSent: summary, note: 'TEST mode / channel not configured — nothing left the server.' })]
       );
-      return { ...item, status: 'dry_run', dryRun: true };
+      return { ...item, status: 'dry_run', dryRun: true, wouldHaveSent: summary };
     }
 
-    let sent;
+    let providerMessageId = null;
     if (item.channel === 'whatsapp') {
-      sent = await whatsapp.sendText({ to: contact.handle, body: item.body });
+      if (item.body) {
+        providerMessageId = (await whatsapp.sendText({ to: contact.handle, body: item.body })).providerMessageId;
+      }
+      for (let index = 0; index < photos.length; index += 1) {
+        const photo = photos[index];
+        const caption = photo.caption || (index === 0 ? (attachments.propertyName || '') : '');
+        const sent = await whatsapp.sendImage({ to: contact.handle, link: publicMediaUrl(photo.id), caption });
+        providerMessageId = providerMessageId || sent.providerMessageId;
+        if (index < photos.length - 1) await sleep(1500); // Meta pair pacing
+      }
+      if (location) {
+        const sent = await whatsapp.sendLocation({
+          to: contact.handle, latitude: location.lat, longitude: location.lng,
+          name: location.label || attachments.propertyName || '', address: location.area || ''
+        });
+        providerMessageId = providerMessageId || sent.providerMessageId;
+      }
     } else if (item.channel === 'instagram') {
-      sent = await instagram.sendText({ to: contact.handle, body: item.body, humanAgent: item.human_agent, aiGenerated: item.ai_generated });
+      if (item.body) {
+        providerMessageId = (await instagram.sendText({ to: contact.handle, body: item.body, humanAgent: item.human_agent, aiGenerated: item.ai_generated })).providerMessageId;
+      }
+      for (let index = 0; index < photos.length; index += 1) {
+        const sent = await instagram.sendImage({ to: contact.handle, url: publicMediaUrl(photos[index].id), humanAgent: item.human_agent, aiGenerated: item.ai_generated });
+        providerMessageId = providerMessageId || sent.providerMessageId;
+        if (index < photos.length - 1) await sleep(1500);
+      }
+      if (location) {
+        // Instagram has no native location message: send the Google Maps link as text.
+        const mapsLink = location.mapsUrl || `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+        const lines = [location.label || attachments.propertyName || 'Property location', location.area || '', mapsLink].filter(Boolean).join('\n');
+        const sent = await instagram.sendText({ to: contact.handle, body: lines, humanAgent: item.human_agent, aiGenerated: item.ai_generated });
+        providerMessageId = providerMessageId || sent.providerMessageId;
+      }
     } else {
       throw new Error(`Unsupported channel: ${item.channel}`);
     }
     safety.noteSend(contact.handle, item.channel);
     const updated = await pool.query(
-      `UPDATE outbox SET status='sent', approved_by=$2, approved_at=NOW(), sent_at=NOW(), provider_message_id=$3 WHERE id=$1 RETURNING *`,
-      [id, user, sent.providerMessageId]
+      `UPDATE outbox SET status='sent', approved_by=$2, approved_at=NOW(), sent_at=NOW(), provider_message_id=$3, meta = meta || $4::jsonb WHERE id=$1 RETURNING *`,
+      [id, user, providerMessageId, JSON.stringify({ sentSummary: summary })]
     );
     return { ...updated.rows[0], dryRun: false };
   }
@@ -148,7 +283,7 @@ function createOutbox({ pool, config, safety, whatsapp, instagram, llm }) {
     return Object.fromEntries(result.rows.map((row) => [row.status, row.count]));
   }
 
-  return { getLead, getContact, upsertContact, recordInbound, createDraft, draftWithAI, list, reject, approveAndSend, stats };
+  return { getLead, getProperty, getProperties, getContact, upsertContact, recordInbound, createDraft, draftWithAI, list, reject, approveAndSend, stats, publicMediaUrl, autoMatchProperty };
 }
 
 module.exports = { createOutbox };

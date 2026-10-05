@@ -45,7 +45,13 @@ function createLLM(config) {
       : wantsPrice
         ? `Aapki ${lead.type} requirement note kar li hai. Exact price bhejne se pehle ek baat batayein — aap kitne BHK/area dekh rahe hain?`
         : `Aapki ${lead.type} ${lead.location} wali enquiry mil gayi hai. Sahi options nikalne ke liye 2 minute baat kar sakte hain?`;
-    return `[Mock AI draft] ${opening} ${line}`;
+    // The outbox tells us exactly what will be attached — never promise anything else.
+    const hint = (joined.match(/Attachments you will send with this reply:\s*([^\n]+)/) || [, ''])[1].trim();
+    const hasPhotos = /photo/i.test(hint);
+    const hasLocation = /location/i.test(hint);
+    const attachLine = [hasPhotos ? 'Property ki photos' : '', hasLocation ? 'Location pin' : ''].filter(Boolean).join(' aur ');
+    const tail = attachLine ? ` ${attachLine} saath bhej raha hoon 👇` : '';
+    return `[Mock AI draft] ${opening} ${line}${tail}`;
   }
 
   async function chat(messages, { json = false, maxTokens = 500, temperature = 0.3 } = {}) {
@@ -81,10 +87,11 @@ function createLLM(config) {
     'You are the messaging assistant for an Indian real-estate brokerage.',
     'Rules: reply in the language the customer used (Hindi in Latin script, English, or Hinglish).',
     'Keep it under 60 words. One clear question at the end. Never invent prices, availability, or legal claims.',
-    'Never promise a site visit confirmation before a human approves it. No emojis overload (max one).'
+    'Never promise a site visit confirmation before a human approves it. No emojis overload (max one).',
+    'If attachments are listed, briefly say you are sending them (photos and/or location pin). Never invent photos, prices, or addresses that were not provided.'
   ].join('\n');
 
-  async function draftReply({ lead, inbound, channel, languageHint = '' }) {
+  async function draftReply({ lead, inbound, channel, languageHint = '', attachmentHint = '' }) {
     const content = await chat([
       { role: 'system', content: HOUSE_RULES },
       { role: 'user', content: [
@@ -93,6 +100,7 @@ function createLLM(config) {
         `Requirement: ${lead?.type || 'unknown'} in ${lead?.location || 'unknown'}, budget ${lead?.budget || 'unknown'} INR, purpose ${lead?.purpose || 'unknown'}, timeline ${lead?.timeline || 'unknown'}`,
         `Customer message: "${inbound || ''}"`,
         languageHint ? `Language hint: ${languageHint}` : '',
+        attachmentHint ? `Attachments you will send with this reply: ${attachmentHint}` : '',
         'Write ONLY the reply text. No preamble, no quotes.'
       ].filter(Boolean).join('\n') }
     ], { maxTokens: 220, temperature: 0.4 });

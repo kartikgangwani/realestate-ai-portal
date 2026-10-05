@@ -19,6 +19,12 @@ const config = {
   approvalRequired: env.APPROVAL_REQUIRED !== 'false',
   autoSend: LIVE && env.AUTO_SEND === 'true',
 
+  // Public URL of THIS deployment. WhatsApp/Meta fetch the photo from this address,
+  // so in LIVE mode it must be the real https URL (e.g. https://xyz.up.railway.app).
+  publicBaseUrl: String(env.PUBLIC_BASE_URL || '').replace(/\/+$/, ''),
+  // Optional: your own WhatsApp number shown as a "contact" button on the public property page.
+  contactWhatsapp: String(env.PUBLIC_CONTACT_WHATSAPP || '').replace(/[^0-9]/g, ''),
+
   meta: {
     appSecret: env.META_APP_SECRET || '',
     graphVersion: env.GRAPH_VERSION || 'v21.0',

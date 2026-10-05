@@ -28,6 +28,24 @@ function createInstagram(config) {
     return { providerMessageId: result.body?.message_id || null, raw: result.body };
   }
 
+  // Instagram image message (URL attachment). Instagram has no "location" message type,
+  // so location is sent as a text message with the Google Maps link by the outbox.
+  async function sendImage({ to, url: imageUrl, humanAgent = false, aiGenerated = false }) {
+    if (!ig.igUserId || !ig.token) throw new Error('Instagram is not configured.');
+    if (humanAgent && aiGenerated) {
+      throw new Error('Refused: the HUMAN_AGENT tag is only allowed for human-written replies (Meta policy).');
+    }
+    const payload = { recipient: { id: to }, message: { attachment: { type: 'image', payload: { url: imageUrl, is_reusable: true } } } };
+    if (humanAgent) payload.tag = 'HUMAN_AGENT';
+    const result = await fetchJson(url('/messages'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${ig.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!result.ok) throw new Error(`Instagram image send failed (${result.status}): ${JSON.stringify(result.body).slice(0, 300)}`);
+    return { providerMessageId: result.body?.message_id || null, raw: result.body };
+  }
+
   function parseWebhook(payload) {
     const events = [];
     if (!payload || (payload.object !== 'instagram' && payload.object !== 'page')) return events;
@@ -57,7 +75,7 @@ function createInstagram(config) {
     return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
-  return { sendText, parseWebhook, verifySignature };
+  return { sendText, sendImage, parseWebhook, verifySignature };
 }
 
 module.exports = { createInstagram };

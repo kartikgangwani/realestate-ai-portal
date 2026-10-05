@@ -87,3 +87,20 @@ CREATE TABLE IF NOT EXISTS lead_ingest_log (
 );
 
 CREATE INDEX IF NOT EXISTS lead_ingest_log_status_idx ON lead_ingest_log (status, created_at DESC);
+
+-- ─────────────────────────────────────────────────────────────
+-- Property photos (added with the property-media feature)
+-- ─────────────────────────────────────────────────────────────
+-- Image bytes live in Postgres so they survive Railway restarts/redeploys.
+-- Only {id, caption} metadata goes into app_state.properties[].photos.
+CREATE TABLE IF NOT EXISTS media (
+  id TEXT PRIMARY KEY,
+  property_id TEXT NOT NULL DEFAULT '',
+  mime TEXT NOT NULL DEFAULT 'image/jpeg',
+  bytes BYTEA NOT NULL,
+  bytes_size INT NOT NULL DEFAULT 0,
+  caption TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS media_property_idx ON media (property_id, created_at);
