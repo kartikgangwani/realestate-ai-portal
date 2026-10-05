@@ -1,0 +1,30 @@
+# ── SECRETS: ye kabhi commit nahi hone chahiye ─────────────────
+.env
+.env.*
+!.env.example
+*.env.production.txt
+.env.production.txt
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+
+# ── Node ──────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+
+# ── OS / editor ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Logs / temp / backups ─────────────────────────────────────
+*.log
+*.tmp
+backup-*/

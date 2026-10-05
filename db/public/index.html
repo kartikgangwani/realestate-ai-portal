@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Private server, simulated RealEstate AI test mode">
+  <title>RealEstate AI — Private Test Mode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="brand-lockup">
+        <div class="logo">RE</div>
+        <div><strong>RealEstate AI</strong><span>Private Server Test Mode</span></div>
+      </div>
+      <h1>Safe private test portal</h1>
+      <p>This portal contains dummy data only. It never sends messages, places calls, or connects to outside accounts.</p>
+      <form id="login-form">
+        <label>Admin username<input id="username" autocomplete="username" required></label>
+        <label>Admin password<input id="password" type="password" autocomplete="current-password" required></label>
+        <button class="button primary wide" type="submit">Open Test Dashboard</button>
+      </form>
+      <div class="credential-note">Your administrator username and password are set securely in the server settings before the first start.</div>
+    </div>
+  </section>
+
+  <div id="portal" class="portal hidden">
+    <aside class="sidebar">
+      <div class="brand-lockup sidebar-brand">
+        <div class="logo">RE</div>
+        <div><strong>RealEstate AI</strong><span>PRIVATE TEST MODE</span></div>
+      </div>
+      <nav aria-label="Main navigation">
+        <button class="nav-item active" data-view="dashboard"><span>▦</span> Dashboard</button>
+        <button class="nav-item" data-view="leads"><span>♙</span> Test Leads</button>
+        <button class="nav-item" data-view="properties"><span>⌂</span> Properties</button>
+        <button class="nav-item" data-view="followups"><span>↻</span> Follow-ups</button>
+        <button class="nav-item" data-view="visits"><span>▣</span> Site Visits</button>
+        <button class="nav-item" data-view="agents"><span>✦</span> AI Agents</button>
+        <button class="nav-item" data-view="reports"><span>▥</span> Reports</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <span class="mode-pill">● SIMULATED ONLY</span>
+        <button class="text-button" data-action="logout">Log out</button>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-button" data-action="toggle-menu" aria-label="Toggle menu">☰</button>
+        <div>
+          <p class="eyebrow">Private Offline Workspace</p>
+          <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div class="top-actions">
+          <button class="button secondary small" data-action="export-data">Export test data</button>
+          <button class="button secondary small" data-action="reset-data">Reset demo</button>
+          <button class="button primary small" data-action="run-simulation">Run safe simulation</button>
+        </div>
+      </header>
+      <div class="safety-banner"><strong>TEST MODE:</strong> Every lead, property, agent task, follow-up, visit, call, and message shown here is simulated. No communication provider or outside service is enabled.</div>
+      <div id="toast" class="toast hidden" role="status"></div>
+      <section id="view" class="view" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <script src="app.js"></script>
+</body>
+</html>
